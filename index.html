@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JS VISION Engine MAT Reader</title>
+<script src="jquery-2.1.1.min.js"></script>
+<script src="matreader.js"></script>
+<style type="text/css">
+body {
+    font-family: "Maven Pro" sans-serif;
+}
+.formdialog {
+    max-width: 50%;
+    background-color: #FFFF99;
+    border: 1px solid black;
+    box-shadow: 5px 5px 16px 1px #444444;
+    /*box-shadow: <x-offset> <y-offset> <blur> <spread> [<colour>]*/
+    margin: 0px auto;
+    padding: 0px 16px;
+}
+.error {
+    text-align: center;
+}
+.error p {
+    display: inline-block;
+    font-size: 10pt;
+    border: 1px solid red;
+    background-color: #FF5555;
+    color: white;
+    padding: 7px;
+    border-radius: 10px;
+}
+</style>
+</head>
+<body>
+<div class="formdialog">
+<p>This is a JavaScript app that will read MAT files made for Wing Commander:
+    Prophecy/Secret Ops, read them, and display them below using JavaScript.</p>
+<p>Just select a file and let the app do its work.</p>
+<hr>
+<form>
+    <p>
+        <label for="matinput">MAT to load: </label>
+        <input type="file" id="matinput" multiple>
+    </p>
+    <div class="error">
+    </div>
+</form>
+</div>
+<hr>
+<div id="matviews"></div>
+</body>
+</html>
