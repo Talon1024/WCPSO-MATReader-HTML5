@@ -2,10 +2,6 @@ $(function() {"use strict";
 
 var xErrorDialog = $("div.formdialog form div.error");
 
-function showErrorDialog(message) {
-    xErrorDialog.html("<p>ERROR: " + message + "</p>");
-}
-
 if (window.File && window.FileReader && window.FileList && window.DataView) {
     // File APIs are supported
     (function(){
@@ -113,8 +109,8 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     });
                     nextFile();
                 } catch (err) {
-                    xErrorDialog.html("<p>ERROR: " + err.message + "</p>");
-                    addCanvasTooltips();
+                    xErrorDialog.html(function(idx, oldhtml) {return oldhtml + "<p>ERROR: " + err.message + "</p>";});
+                    nextFile();
                 }
             }
             nextFile();
