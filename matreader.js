@@ -5,7 +5,8 @@ var xErrorDialog = $("div.formdialog form div.error");
 if (window.File && window.FileReader && window.FileList && window.DataView) {
     // File APIs are supported
     (function(){
-        
+
+        // For things that are not yet implemented.
         function UnsupportedError(message) {
             this.name = 'UnsupportedError';
             this.message = message || 'Operation not supported!';
@@ -13,13 +14,8 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
         UnsupportedError.prototype = new Error();
         UnsupportedError.prototype.constructor = UnsupportedError;
 
-        function MyImage(width, height) {
-            this.width = width;
-            this.height = height;
-        }
-
-        function Colour(red, green, blue, alpha) {
-            if (this.alpha === undefined) this.alpha = 255;
+        // For palette colours
+        function Colour(red, green, blue) {
             this.red = red;
             this.green = green;
             this.blue = blue;
@@ -32,10 +28,13 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     String.fromCharCode((uint32 & (255 << 0)) >> 0);
         }
 
+        // Automatically load selected files when the user selects them
         $("#matinput").on("change", loadMats);
+        // Initialize the tooltip
         var tooltip = $(".tooltip");
         tooltip.hide();
         window.onmousemove = function(e) {
+            // When the user moves the mouse, move the tooltip.
             tooltip.css("left", e.clientX + 4 + "px");
             tooltip.css("top", e.clientY + 4 + "px");
         };
@@ -49,6 +48,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
             reader.onload = readMat;
             $("div#matviews").empty();
             xErrorDialog.html("");
+            // Recursively called function that loads the next file
             function nextFile() {
                 if (numFilesLoaded < files.length && files[numFilesLoaded]) {
                     // Load and display all MAT files
@@ -86,8 +86,8 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                         offset += palette.length * 3 + 8 + 12; // Take into account the bytes that make up the "PAL " FORM and the CMAP CHUNK
                     } else if (palette.type === "external") {
                         console.log("external palette: " + palette.name + ".pal");
-                        offset += 8 + 12 + palette.name.length;
-                        throw new UnsupportedError("External palettes not supported yet! (" + curFileName + ")");
+                        offset += 8 + 12 + palette.name.length + (palette.name.length % 2 === 0) ? 2 : 1;
+                        palette.data = extPalettes[palette.name] || palette;
                     }
                     var pixels = readPxls(dv, offset);
                     var alphas;
@@ -113,6 +113,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     nextFile();
                 }
             }
+            // Begin reading the files.
             nextFile();
         }
 
@@ -180,7 +181,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                 }
                 return {
                     type: "external",
-                    name: extPalName
+                    name: extPalName.toLowerCase()
                 };
             } else {
                 throw new TypeError("MAT file contains neither a CMAP nor NAME chunk to embed/identify the palette!");
