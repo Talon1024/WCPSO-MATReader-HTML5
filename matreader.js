@@ -87,7 +87,11 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     } else if (palette.type === "external") {
                         console.log("external palette: " + palette.name + ".pal");
                         offset += 8 + 12 + palette.name.length + (palette.name.length % 2 === 0) ? 2 : 1;
-                        palette.data = extPalettes[palette.name] || palette;
+                        if (palette.name in extPalettes) {
+                            palette.data = extPalettes[palette.name];
+                        } else {
+                            throw new ReferenceError("External palette " + palette.name + ".pal is unavailable!");
+                        }
                     }
                     var pixels = readPxls(dv, offset);
                     var alphas;
