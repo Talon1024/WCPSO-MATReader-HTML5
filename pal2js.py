@@ -46,10 +46,8 @@ for palname in palettes:
             if (palsize % 3 == 0):
                 # Read each colour
                 colours = []
-                for colour in range(palsize // 3):
-                    red = struct.unpack("<B", palfile.read(1))[0]
-                    green = struct.unpack("<B", palfile.read(1))[0]
-                    blue = struct.unpack("<B", palfile.read(1))[0]
+                for x in range(palsize // 3):
+                    red, green, blue = struct.unpack("<BBB", palfile.read(3))
                     colours.append(COLOUR_TEMPLATE.format(
                         red = red,
                         green = green,

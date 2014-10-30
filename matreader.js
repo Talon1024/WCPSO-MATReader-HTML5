@@ -1,4 +1,6 @@
-$(function() {"use strict";
+/*global jQuery: false, $: false, extPalettes: false*/
+
+$(function () {"use strict";
 
 var xErrorDialog = $("div.formdialog form div.error");
 
@@ -38,6 +40,17 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
             tooltip.css("left", e.clientX + 4 + "px");
             tooltip.css("top", e.clientY + 4 + "px");
         };
+        $("#matviews")
+            .on("mouseenter", "canvas", showTooltip)
+            .on("mouseleave", "canvas", hideTooltip);
+
+        function showTooltip(e) {
+            tooltip.show().text(e.target.getAttribute("data-filename"));
+        }
+
+        function hideTooltip(e) {
+            tooltip.hide();
+        }
 
         function loadMats(e) {
             var curFileName;
@@ -55,12 +68,11 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     curFileName = files[numFilesLoaded].name;
                     reader.readAsArrayBuffer(files[numFilesLoaded]);
                     numFilesLoaded++;
-                } else {
-                    addCanvasTooltips();
                 }
             }
             function readMat(e) {
                 try {
+                    var xCurFileName = curFileName; // needed to get correct filename on AJAX request
                     var offset = 0;
                     var dv = new DataView(e.target.result);
                     var rootForm = isForm(dv, offset);
@@ -87,11 +99,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     } else if (palette.type === "external") {
                         console.log("external palette: " + palette.name + ".pal");
                         offset += 8 + 12 + palette.name.length + (palette.name.length % 2 === 0) ? 2 : 1;
-                        if (palette.name in extPalettes) {
-                            palette.data = extPalettes[palette.name];
-                        } else {
-                            throw new ReferenceError("External palette " + palette.name + ".pal is unavailable!");
-                        }
+                        
                     }
                     var pixels = readPxls(dv, offset);
                     var alphas;
@@ -104,13 +112,40 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     } else {
                         alphas = false;
                     }
-                    matImageToCanvas({
-                        dimensions: imageDimensions,
-                        "palette": palette,
-                        "palrefs": pixels,
-                        "alphas": alphas,
-                        "filename": curFileName
-                    });
+                    // determine whether to use an AJAX request to load the palette.
+                    if (palette.type === "embedded") {
+                        matImageToCanvas({
+                            dimensions: imageDimensions,
+                            "palette": palette,
+                            "palrefs": pixels,
+                            "alphas": alphas,
+                            "filename": curFileName
+                        });
+                    } else if (palette.type === "external") {
+                        var palxhr = new XMLHttpRequest();
+                        palxhr.open("GET", "pal/" + palette.name + ".pal", true);
+                        palxhr.responseType = "arraybuffer";
+                        palxhr.onreadystatechange = function(e) {
+                            if (e.target.readyState == 4) {
+                                if (e.target.status == 200) {
+                                    dv = new DataView(e.target.response);
+                                    palette = readPalette(dv, 0);
+                                    matImageToCanvas({
+                                        dimensions: imageDimensions,
+                                        "palette": palette,
+                                        "palrefs": pixels,
+                                        "alphas": alphas,
+                                        "filename": xCurFileName
+                                    });
+                                } else if (e.target.status == 404) {
+                                    throw new ReferenceError(palette.name + ".pal not found on the server! Please contact the server administrator.");
+                                } else {
+                                    throw new ReferenceError("Unable to load " + palette.name + ".pal!");
+                                }
+                            }
+                        };
+                        palxhr.send();
+                    }
                     nextFile();
                 } catch (err) {
                     xErrorDialog.html(function(idx, oldhtml) {return oldhtml + "<p>ERROR: " + err.message + "</p>";});
@@ -252,20 +287,6 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
             canvasParent.appendChild(canvas);
             var context = canvas.getContext("2d");
             context.putImageData(matImageData, 0, 0);
-        }
-
-        function addCanvasTooltips() {
-            $("#matviews")
-                .on("mouseenter", "canvas", showTooltip)
-                .on("mouseleave", "canvas", hideTooltip);  
-        }
-
-        function showTooltip(e) {
-            tooltip.show().text(e.target.getAttribute("data-filename"));
-        }
-
-        function hideTooltip(e) {
-            tooltip.hide();
         }
 
         function isForm(dv, idx) {
