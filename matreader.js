@@ -126,22 +126,26 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                         palxhr.open("GET", "pal/" + palette.name + ".pal", true);
                         palxhr.responseType = "arraybuffer";
                         palxhr.onreadystatechange = function(e) {
-                            if (e.target.readyState == 4) {
-                                if (e.target.status == 200) {
-                                    dv = new DataView(e.target.response);
-                                    palette = readPalette(dv, 0);
-                                    matImageToCanvas({
-                                        dimensions: imageDimensions,
-                                        "palette": palette,
-                                        "palrefs": pixels,
-                                        "alphas": alphas,
-                                        "filename": xCurFileName
-                                    });
-                                } else if (e.target.status == 404) {
-                                    throw new ReferenceError(palette.name + ".pal not found on the server! Please contact the server administrator.");
-                                } else {
-                                    throw new ReferenceError("Unable to load " + palette.name + ".pal!");
+                            try {
+                                if (e.target.readyState == 4) {
+                                    if (e.target.status == 200) {
+                                        dv = new DataView(e.target.response);
+                                        palette = readPalette(dv, 0);
+                                        matImageToCanvas({
+                                            dimensions: imageDimensions,
+                                            "palette": palette,
+                                            "palrefs": pixels,
+                                            "alphas": alphas,
+                                            "filename": xCurFileName
+                                        });
+                                    } else if (e.target.status == 404) {
+                                        throw new ReferenceError(palette.name + ".pal not found on the server! Please contact the server administrator.");
+                                    } else {
+                                        throw new ReferenceError("Unable to load " + palette.name + ".pal!");
+                                    }
                                 }
+                            } catch (err) {
+                                xErrorDialog.html(function(idx, oldhtml) {return oldhtml + "<p>ERROR: " + err.message + "</p>";});
                             }
                         };
                         palxhr.send();
