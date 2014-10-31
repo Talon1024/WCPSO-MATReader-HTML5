@@ -7,6 +7,8 @@ var xErrorDialog = $("div.formdialog form div.error");
 if (window.File && window.FileReader && window.FileList && window.DataView) {
     // File APIs are supported
     (function(){
+        
+        var palCache = {};
 
         // For things that are not yet implemented.
         function UnsupportedError(message) {
@@ -76,6 +78,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                     var offset = 0;
                     var dv = new DataView(e.target.result);
                     var rootForm = isForm(dv, offset);
+                    var getExtPal = false;
                     if (rootForm) {
                         if (rootForm.name == "BITM") {
                             offset = rootForm.offset + 12;
@@ -98,8 +101,13 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                         offset += palette.length * 3 + 8 + 12; // Take into account the bytes that make up the "PAL " FORM and the CMAP CHUNK
                     } else if (palette.type === "external") {
                         console.log("external palette: " + palette.name + ".pal");
+                        if (palette.name in palCache) {
+                            palette.data = palCache[palette.name];
+                            console.log("Palette " + palette.name + " found in palette cache.");
+                        } else {
+                            getExtPal = true;
+                        }
                         offset += 8 + 12 + palette.name.length + (palette.name.length % 2 === 0) ? 2 : 1;
-                        
                     }
                     var pixels = readPxls(dv, offset);
                     var alphas;
@@ -113,7 +121,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                         alphas = false;
                     }
                     // determine whether to use an AJAX request to load the palette.
-                    if (palette.type === "embedded") {
+                    if (!getExtPal) {
                         matImageToCanvas({
                             dimensions: imageDimensions,
                             "palette": palette,
@@ -121,7 +129,8 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                             "alphas": alphas,
                             "filename": curFileName
                         });
-                    } else if (palette.type === "external") {
+                    } else {
+                        var palName = palette.name;
                         var palxhr = new XMLHttpRequest();
                         palxhr.open("GET", "pal/" + palette.name + ".pal", true);
                         palxhr.responseType = "arraybuffer";
@@ -131,6 +140,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                                     if (e.target.status == 200) {
                                         dv = new DataView(e.target.response);
                                         palette = readPalette(dv, 0);
+                                        palCache[palName] = palette.data;
                                         matImageToCanvas({
                                             dimensions: imageDimensions,
                                             "palette": palette,
@@ -239,11 +249,12 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
             while (dv.getUint32(idx) != 1347963987) { // PXLS
                 idx++;
             }
-            idx += 4; var bytelength = dv.getUint32(idx);
-            var pixels = [];
+            idx += 4;
+            var bytelength = dv.getUint32(idx);
+            var pixels = new Uint8ClampedArray(bytelength);
             idx += 4;
             for(var i = 0; i < bytelength; i++) {
-                pixels.push(dv.getUint8(idx++));
+                pixels[i] = dv.getUint8(idx++);
             }
             return pixels;
         }
@@ -256,11 +267,12 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
             while (dv.getUint32(idx) != 1095520328) { // ALPH
                 idx++;
             }
-            idx += 4; var bytelength = dv.getUint32(idx);
-            var alphaBytes = [];
+            idx += 4;
+            var bytelength = dv.getUint32(idx);
+            var alphaBytes = new Uint8ClampedArray(bytelength);
             idx += 4;
             for(var i = 0; i < bytelength; i++) {
-                alphaBytes.push(255 - dv.getUint8(idx++)); // WCSO uses an inverted alpha channel
+                alphaBytes[i] = 255 - dv.getUint8(idx++); // WCSO uses an inverted alpha channel
             }
             return alphaBytes;
         }
