@@ -11,8 +11,3 @@ Just select some MAT files using the file selector, and they will be loaded
 automatically, and displayed to you as they are being loaded. Once the load is
 complete, you can hover over each image rendered from the MAT file, and you can
 see which MAT corresponds to the image you are hovering over.
-
-Known issues
-------------
-
-External palettes are not supported yet.
