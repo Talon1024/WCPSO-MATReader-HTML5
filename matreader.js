@@ -1,13 +1,19 @@
 /*global jQuery: false, $: false, extPalettes: false*/
 
-$(function () {"use strict";
+window.addEventListener("load", function () {"use strict";
 
-var xErrorDialog = $("div.formdialog form div.error");
+var xErrorDialog = document.body.querySelector("div.formdialog > form > div.error");
+
+function addError(errMessage) {
+    const errorElement = document.createElement("p");
+    errorElement.appendChild(document.createTextNode("ERROR: " + errMessage));
+    xErrorDialog.appendChild(errorElement);
+}
 
 if (window.File && window.FileReader && window.FileList && window.DataView) {
     // File APIs are supported
     (function(){
-        
+
         var palCache = {};
 
         // For things that are not yet implemented.
@@ -33,36 +39,48 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
         }
 
         // Automatically load selected files when the user selects them
-        $("#matinput").on("change", loadMats);
+        document.getElementById("matinput").addEventListener("change", loadMats);
         // Initialize the tooltip
-        var tooltip = $(".tooltip");
-        tooltip.hide();
+        const tooltip = document.getElementById("tooltip");
+        tooltip.style.visibility = "hidden";
         window.onmousemove = function(e) {
             // When the user moves the mouse, move the tooltip.
-            tooltip.css("left", e.clientX + 4 + "px");
-            tooltip.css("top", e.clientY + 4 + "px");
+            tooltip.style.left = e.clientX + 4 + "px";
+            tooltip.style.top = e.clientY + 4 + "px";
         };
-        $("#matviews")
-            .on("mouseenter", "canvas", showTooltip)
-            .on("mouseleave", "canvas", hideTooltip);
+        const matviews = document.getElementById("matviews");
+        matviews.addEventListener("mouseenter", showTooltip, {capture: true});
+        matviews.addEventListener("mouseleave", hideTooltip, {capture: true});
 
         function showTooltip(e) {
-            tooltip.show().text(e.target.getAttribute("data-filename"));
+            if (e.target.matches("canvas")) {
+                // tooltip.show().text(e.target.getAttribute("data-filename"));
+                const fileName = e.target.getAttribute("data-filename");
+                tooltip.style.visibility = "visible";
+                if (tooltip.childNodes.length > 0) {
+                    tooltip.removeChild(tooltip.childNodes[0]);
+                }
+                tooltip.appendChild(document.createTextNode(fileName));
+            }
         }
 
         function hideTooltip(e) {
-            tooltip.hide();
+            if (e.target.matches("canvas")) {
+                tooltip.style.visibility = "hidden";
+            }
         }
 
         function loadMats(e) {
             var curFileName;
-            var useAlpha = $("input#alphachannel").prop("checked");
+            var useAlpha = document.getElementById("alphachannel").checked;
+            console.log("useAlpha", useAlpha);
             var numFilesLoaded = 0;
             var files = e.target.files;
             var reader = new FileReader();
             reader.onload = readMat;
-            $("div#matviews").empty();
-            xErrorDialog.html("");
+            for (const mat of matviews.childNodes) {
+                matviews.removeChild(mat);
+            }
             // Recursively called function that loads the next file
             function nextFile() {
                 if (numFilesLoaded < files.length && files[numFilesLoaded]) {
@@ -155,14 +173,14 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
                                     }
                                 }
                             } catch (err) {
-                                xErrorDialog.html(function(idx, oldhtml) {return oldhtml + "<p>ERROR: " + err.message + "</p>";});
+                                addError(err.message);
                             }
                         };
                         palxhr.send();
                     }
                     nextFile();
                 } catch (err) {
-                    xErrorDialog.html(function(idx, oldhtml) {return oldhtml + "<p>ERROR: " + err.message + "</p>";});
+                    addError(err.message);
                     nextFile();
                 }
             }
@@ -295,12 +313,11 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
             }
             var matImageData = new ImageData(matImageArray, matimg.dimensions.width, matimg.dimensions.height);
 
-            var canvasParent = document.getElementById("matviews");
             var canvas = document.createElement("canvas");
             canvas.width = matimg.dimensions.width;
             canvas.height = matimg.dimensions.height;
             canvas.setAttribute("data-filename", matimg.filename);
-            canvasParent.appendChild(canvas);
+            matviews.appendChild(canvas);
             var context = canvas.getContext("2d");
             context.putImageData(matImageData, 0, 0);
         }
@@ -330,7 +347,7 @@ if (window.File && window.FileReader && window.FileList && window.DataView) {
     }());
 } else {
     // Sorry, File APIs not supported
-    xErrorDialog.html("<p>ERROR: HTML5 File APIs unsupported. Please upgrade your browser.</p>");
+    addError("HTML5 File APIs unsupported. Please upgrade your browser.");
 }
 
 
